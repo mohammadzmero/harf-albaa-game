@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لُعْبَةُ حَرْفِ الْبَاءِ - الصَّفُّ الْأَوَّلُ الأَسَاسِيّ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        * {
+            font-family: 'Tajawal', 'Cairo', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #fef3c7 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bounce-gentle {
+            animation: bounceGentle 2s infinite ease-in-out;
+        }
+
+        @keyframes bounceGentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 1.8s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+            70% { box-shadow: 0 0 0 16px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Balloon Animation */
+        .balloon {
+            position: absolute;
+            bottom: -120px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.15));
+        }
+        .balloon:hover {
+            transform: scale(1.1);
+        }
+
+        /* Tracing Canvas */
+        #tracingCanvas {
+            touch-action: none !important;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            cursor: crosshair;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        /* Certificate Styling */
+        .certificate-border {
+            border: 12px double #d97706;
+            background: radial-gradient(circle, #ffffff 0%, #fffbebe6 100%);
+        }
+
+        /* Connected Arabic Text Styling */
+        .connected-sentence {
+            font-family: 'Cairo', sans-serif;
+            font-size: 3.5rem;
+            line-height: 1.6;
+            letter-spacing: 0px;
+            direction: rtl;
+        }
+
+        .baa-highlight {
+            display: inline-block;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background-color: #fef08a;
+            border: 2px dashed #eab308;
+            color: #1e293b;
+        }
+
+        .baa-highlight.found {
+            background-color: #22c55e !important;
+            color: #ffffff !important;
+            border: 2px solid #15803d !important;
+            transform: scale(1.15);
+            box-shadow: 0 0 15px #22c55e;
+        }
+
+        /* Matching Line SVG */
+        #matchingSvg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #screen-certificate, #screen-certificate * {
+                visibility: visible;
+            }
+            #screen-certificate {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between text-slate-800">
+
+    <!-- Top Header & Progress Bar -->
+    <header class="bg-white/90 backdrop-blur-md border-b-4 border-amber-400 px-4 py-3 sticky top-0 z-50 shadow-md">
+        <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <!-- School & Teacher Info -->
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="bg-amber-500 text-white p-2.5 rounded-2xl shadow-sm text-xl">
+                    🏫
+                </div>
+                <div>
+                    <h1 class="text-xs sm:text-sm font-bold text-slate-700">مَدْرَسَةُ ذُكُورِ الشَّهِيدَيْنِ بِلَالٍ وَأَشْرَفَ الأَسَاسِيَّةِ</h1>
+                    <p class="text-xs text-amber-600 font-semibold">بِإِشْرَافِ الْمُعَلِّمِ: مُحَمَّد عَبْدِ الرَّحْمَن</p>
+                </div>
+            </div>
+
+            <!-- Student Name Badge & Sound Control -->
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <div id="studentBadge" class="hidden bg-emerald-100 border-2 border-emerald-400 px-3 py-1 rounded-full text-emerald-800 font-bold text-sm sm:text-base flex items-center gap-1.5 shadow-sm">
+                    <span>👤</span>
+                    <span id="studentBadgeName">الطَّالِبُ</span>
+                </div>
+                <button onclick="repeatInstructionSound()" title="إِعَادَةُ الصَّوْتِ" class="bg-blue-500 hover:bg-blue-600 text-white p-2.5 rounded-2xl shadow-md transition active:scale-95 text-lg flex items-center justify-center">
+                    🔊
+                </button>
+            </div>
+        </div>
+
+        <!-- Stage Progress Indicator -->
+        <div id="progressContainer" class="hidden max-w-5xl mx-auto mt-2.5">
+            <div class="flex justify-between items-center text-xs font-bold text-slate-600 mb-1 px-1">
+                <span id="stageTitle">المَرْحَلَةُ الأولى</span>
+                <span id="stageStepText">1 / 6</span>
+            </div>
+            <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden p-0.5 border border-slate-300">
+                <div id="progressBar" class="bg-gradient-to-r from-emerald-400 to-teal-500 h-full rounded-full transition-all duration-500" style="width: 16.6%;"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="flex-grow flex items-center justify-center p-3 sm:p-6">
+        <div class="w-full max-w-4xl">
+
+            <!-- ================= WELCOME SCREEN ================= -->
+            <section id="screen-welcome" class="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border-4 border-amber-300 text-center relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-200 rounded-full opacity-50 blur-xl"></div>
+                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-200 rounded-full opacity-50 blur-xl"></div>
+
+                <div class="inline-block bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full font-bold text-sm mb-4 border border-amber-300">
+                    ✨ لُعْبَةٌ تَفَاعُلِيَّةٌ فِي اللُّغَةِ الْعَرَبِيَّةِ ✨
+                </div>
+
+                <h2 class="text-3xl sm:text-5xl font-black text-slate-800 mb-2 leading-tight">
+                    دَرْسُ <span class="text-amber-500 underline decoration-wavy decoration-amber-300">حَرْفِ الْبَاءِ (ب)</span>
+                </h2>
+                <p class="text-slate-600 text-sm sm:text-base mb-6 font-medium">أَهْلًا بِأَبْطَالِ الصَّفِّ الأَوَّلِ الأَسَاسِيِّ</p>
+
+                <!-- Big Illustration Card -->
+                <div class="bg-gradient-to-b from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6 mb-8 max-w-md mx-auto shadow-inner">
+                    <div class="text-7xl sm:text-8xl font-black text-amber-500 mb-2 bounce-gentle">ب</div>
+                    <p class="text-slate-700 font-bold text-lg">تَعَلَّمْ، اِلْعَبْ، وَاكْتَشِفْ مَعَنَا!</p>
+                </div>
+
+                <!-- Student Name Input Box -->
+                <div class="max-w-md mx-auto bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 shadow-sm mb-6">
+                    <label for="studentNameInput" class="block text-right text-sm font-bold text-slate-700 mb-2">
+                        ✍️ اُكْتُبِ اسْمَكَ يَا بَطَلُ هُنَا لِلْبَدْءِ:
+                    </label>
+                    <input type="text" id="studentNameInput" placeholder="اُكْتُبِ اسْمَكَ هُنَا..." 
+                           class="w-full text-center text-xl font-bold py-3 px-4 rounded-xl border-2 border-amber-400 focus:outline-none focus:ring-4 focus:ring-amber-200 bg-white text-slate-800 transition">
+                </div>
+
+                <!-- Start Button -->
+                <button onclick="startGame()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-2xl py-4 px-10 rounded-2xl shadow-xl hover:shadow-2xl transition transform active:scale-95 pulse-glow flex items-center justify-center gap-3 mx-auto">
+                    <span>ابْدَأِ اللُعْبَةَ الآنَ</span>
+                    <span class="text-3xl">🚀</span>
+                </button>
+            </section>
+
+            <!-- ================= STAGE 1: EXPLORATION ================= -->
+            <section id="screen-stage1" class="hidden bg-white rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-sky-300">
+                <div class="text-center mb-6">
+                    <span class="bg-sky-100 text-sky-800 px-4 py-1 rounded-full text-xs font-bold">المَرْحَلَةُ الأُولَى</span>
+                    <h3 class="text-2xl sm:text-3xl font-black text-slate-800 mt-2">الاسْتِكْشَافُ وَالاسْتِمَاعُ لِحَرْفِ الْبَاءِ</h3>
+                    <p class="text-slate-600 text-sm mt-1">اِضْغَطْ عَلَى الْبِطَاقَاتِ لِلتَّعَرُّفِ عَلَى صَوْتِ الْحَرْفِ وَالْمَقَاطِعِ وَالْكَلِمَاتِ:</p>
+                </div>
+
+                <!-- Exploration Cards Grid -->
+                <div class="space-y-6">
+                    <!-- Main Letter & Vowels -->
+                    <div>
+                        <h4 class="text-center font-bold text-slate-700 mb-3 text-base">1. حَرْفُ الْبَاءِ وَالْمَقَاطِعُ الطَّوِيلَةُ:</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <button onclick="playExplorationSound('بْ', 'حَرْفُ الْبَاء')" class="bg-amber-100 hover:bg-amber-200 border-2 border-amber-400 rounded-2xl p-4 text-center shadow-md transition transform active:scale-95">
+                                <span class="text-5xl font-black text-amber-600 block mb-1">ب</span>
+                                <span class="text-xs font-bold text-amber-800">حَرْفُ الْبَاءِ</span>
+                            </button>
+                            <button onclick="playExplorationSound('بَا', 'مَقْطَعُ بَا')" class="bg-blue-100 hover:bg-blue-200 border-2 border-blue-400 rounded-2xl p-4 text-center shadow-md transition transform active:scale-95">
+                                <span class="text-5xl font-black text-blue-600 block mb-1">بَا</span>
+                                <span class="text-xs font-bold text-blue-800">مَقْطَعُ (بَا)</span>
+                            </button>
+                            <button onclick="playExplorationSound('بُو', 'مَقْطَعُ بُو')" class="bg-emerald-100 hover:bg-emerald-200 border-2 border-emerald-400 rounded-2xl p-4 text-center shadow-md transition transform active:scale-95">
+                                <span class="text-5xl font-black text-emerald-600 block mb-1">بُو</span>
+                                <span class="text-xs font-bold text-emerald-800">مَقْطَعُ (بُو)</span>
+                            </button>
+                            <button onclick="playExplorationSound('بِي', 'مَقْطَعُ بِي')" class="bg-purple-100 hover:bg-purple-200 border-2 border-purple-400 rounded-2xl p-4 text-center shadow-md transition transform active:scale-95">
+                                <span class="text-5xl font-black text-purple-600 block mb-1">بِي</span>
+                                <span class="text-xs font-bold text-purple-800">مَقْطَعُ (بِي)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Words Cards -->
+                    <div>
+                        <h4 class="text-center font-bold text-slate-700 mb-3 text-base">2. كَلِمَاتُ الدَّرْسِ الْمُصَوَّرَةُ:</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <button onclick="playExplorationSound('بَابْ', 'كَلِمَةُ بَابْ')" class="bg-white hover:bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-center shadow-md transition transform active:scale-95 flex flex-col items-center">
+                                <span class="text-6xl mb-2">🚪</span>
+                                <span class="text-3xl font-black text-slate-800 mb-1">بَابْ</span>
+                                <span class="text-xs text-amber-600 font-bold">اِضْغَطْ لِلِاسْتِمَاعِ</span>
+                            </button>
+                            <button onclick="playExplorationSound('بُومْ', 'كَلِمَةُ بُومْ')" class="bg-white hover:bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-center shadow-md transition transform active:scale-95 flex flex-col items-center">
+                                <span class="text-6xl mb-2">🦉</span>
+                                <span class="text-3xl font-black text-slate-800 mb-1">بُومْ</span>
+                                <span class="text-xs text-amber-600 font-bold">اِضْغَطْ لِلِاسْتِمَاعِ</span>
+                            </button>
+                            <button onclick="playExplorationSound('بِيرْ', 'كَلِمَةُ بِيرْ')" class="bg-white hover:bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-center shadow-md transition transform active:scale-95 flex flex-col items-center">
+                                <span class="text-6xl mb-2">🕳️</span>
+                                <span class="text-3xl font-black text-slate-800 mb-1">بِيرْ</span>
+                                <span class="text-xs text-amber-600 font-bold">اِضْغَطْ لِلِاسْتِمَاعِ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage 1 Action Button -->
+                <div class="mt-8 text-center">
+                    <button onclick="goToStage(2)" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xl py-3 px-8 rounded-2xl shadow-lg transition active:scale-95">
+                        الانْتِقَالُ لِلْمَرْحَلَةِ الثَّانِيَةِ ➡️
+                    </button>
+                </div>
+            </section>
+
+            <!-- ================= STAGE 2: BALLOON CATCH ================= -->
+            <section id="screen-stage2" class="hidden bg-white rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-purple-300">
+                <div class="text-center mb-4">
+                    <span class="bg-purple-100 text-purple-800 px-4 py-1 rounded-full text-xs font-bold">المَرْحَلَةُ الثَّانِيَةُ</span>
+                    <h3 class="text-2xl sm:text-3xl font-black text-slate-800 mt-2">اصْطِيَادُ بَالُونَاْتِ حَرْفِ الْبَاْءِ 🎈</h3>
+                    <p class="text-slate-600 text-sm mt-1">اِصْطَدِ الْبَالُونَاْتِ الَّتِي تَحْمِلُ حَرْفَ الْبَاْءِ (بـ / ب) فَقَطْ!</p>
+                </div>
+
+                <!-- Counter Bar -->
+                <div class="flex justify-between items-center bg-purple-50 p-3 rounded-2xl border border-purple-200 mb-4 max-w-md mx-auto">
+                    <span class="font-bold text-purple-900 text-sm">الْبَالُونَاْتُ الْمَصْيُودَةُ:</span>
+                    <span id="balloonCount" class="bg-purple-600 text-white font-black px-4 py-1 rounded-full text-lg">0 / 4</span>
+                </div>
+
+                <!-- Balloon Playground -->
+                <div id="balloonArea" class="relative w-full h-[360px] bg-gradient-to-b from-sky-100 to-indigo-50 rounded-2xl border-2 border-purple-200 overflow-hidden shadow-inner">
+                    <!-- Dynamic balloons will spawn here via JS -->
+                </div>
+            </section>
+
+            <!-- ================= STAGE 3: MATCHING ================= -->
+            <section id="screen-stage3" class="hidden bg-white rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-emerald-300 relative">
+                <!-- Overlay SVG for connection lines -->
+                <svg id="matchingSvg"></svg>
+
+                <div class="text-center mb-6">
+                    <span class="bg-emerald-100 text-emerald-800 px-4 py-1 rounded-full text-xs font-bold">المَرْحَلَةُ الثَّالِثَةُ</span>
+                    <h3 class="text-2xl sm:text-3xl font-black text-slate-800 mt-2">التَّوْصِيلُ بَيْنَ الْمَقْطَعِ وَالْكَلِمَةِ 🔗</h3>
+                    <p class="text-slate-600 text-sm mt-1">اِضْغَطْ عَلَى الْمَقْطَعِ لِلِاسْتِمَاعِ ثُمَّ اِضْغَطْ عَلَى الْكَلِمَةِ الْمُنَاسِبَةِ لِلتَّوْصِيلِ:</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-8 sm:gap-16 max-w-2xl mx-auto my-6 relative z-20">
+                    <!-- Right Column: Syllables -->
+                    <div class="space-y-4 flex flex-col justify-around">
+                        <div id="syl-ba" onclick="handleMatchClick('syl', 'ba')" class="match-item bg-blue-50 border-4 border-blue-400 p-4 rounded-2xl text-center cursor-pointer hover:bg-blue-100 transition shadow-md active:scale-95">
+                            <span class="text-4xl font-black text-blue-700">بَا</span>
+                        </div>
+                        <div id="syl-bu" onclick="handleMatchClick('syl', 'bu')" class="match-item bg-emerald-50 border-4 border-emerald-400 p-4 rounded-2xl text-center cursor-pointer hover:bg-emerald-100 transition shadow-md active:scale-95">
+                            <span class="text-4xl font-black text-emerald-700">بُو</span>
+                        </div>
+                        <div id="syl-bi" onclick="handleMatchClick('syl', 'bi')" class="match-item bg-purple-50 border-4 border-purple-400 p-4 rounded-2xl text-center cursor-pointer hover:bg-purple-100 transition shadow-md active:scale-95">
+                            <span class="text-4xl font-black text-purple-700">بِي</span>
+                        </div>
+                    </div>
+
+                    <!-- Left Column: Words -->
+                    <div class="space-y-4 flex flex-col justify-around">
+                        <div id="word-bu" onclick="handleMatchClick('word', 'bu')" class="match-item bg-amber-50 border-4 border-amber-400 p-4 rounded-2xl text-center cursor-pointer hover:bg-amber-100 transition shadow-md active:scale-95 flex items-center justify-center gap-2">
+                            <span class="text-3xl">🦉</span>
+                            <span class="text-3xl font-black text-slate-800">بُومْ</span>
+                        </div>
+                        <div id="word-bi" onclick="handleMatchClick('word', 'bi')" class="match-item bg-teal-50 border-4 border-teal-400 p-4 rounded-2xl text-center cursor-pointer hover:bg-teal-100 transition shadow-md active:scale-95 flex items-center justify-center gap-2">
+                            <span class="text-3xl">🕳️</span>
+                            <span class="text-3xl font-black text-slate-800">بِيرْ</span>
+                        </div>
+                        <div id="word-ba" onclick="handleMatchClick('word', 'ba')" class="match-item bg-orange-50 border-4 border-orange-400 p-4 rounded-2xl text-center cursor-pointer hover:bg-orange-100 transition shadow-md active:scale-95 flex items-center justify-center gap-2">
+                            <span class="text-3xl">🚪</span>
+                            <span class="text-3xl font-black text-slate-800">بَابْ</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= STAGE 4: WORD FORMATION ================= -->
+            <section id="screen-stage4" class="hidden bg-white rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-orange-300">
+                <div class="text-center mb-6">
+                    <span class="bg-orange-100 text-orange-800 px-4 py-1 rounded-full text-xs font-bold">المَرْحَلَةُ الرَّابِعَةُ</span>
+                    <h3 class="text-2xl sm:text-3xl font-black text-slate-800 mt-2">اخْتِيَارُ شَكْلِ حَرْفِ الْبَاْءِ الْمُنَاْسِبِ 🧩</h3>
+                    <p class="text-slate-600 text-sm mt-1">اِخْتَرِ الشَّكْلَ الصَّحِيحَ (بـ فِي أَوَّلِ الْكَلِمَةِ أَوْ ب فِي آخِرِ الْكَلِمَةِ):</p>
+                </div>
+
+                <!-- Word Card Exercises Container -->
+                <div id="stage4Exercises" class="space-y-6 max-w-2xl mx-auto">
+                    <!-- Exercise cards rendered via JS -->
+                </div>
+            </section>
+
+            <!-- ================= STAGE 5: TRACING CANVAS ================= -->
+            <section id="screen-stage5" class="hidden bg-white rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-teal-300">
+                <div class="text-center mb-4">
+                    <span class="bg-teal-100 text-teal-800 px-4 py-1 rounded-full text-xs font-bold">المَرْحَلَةُ الْخَاْمِسَةُ</span>
+                    <h3 id="tracingTitle" class="text-2xl sm:text-3xl font-black text-slate-800 mt-1">كُرَّاسَةُ الْكِتَاْبَةِ: حَرْفُ (بـ) فِي أَوَّلِ الْكَلِمَةِ</h3>
+                    <p class="text-slate-600 text-sm mt-1">مَرِّرْ إِصْبَعَكَ أَوْ المَاْوُسَ فَوْقَ النِّقَاْطِ لِكِتَاْبَةِ الْحَرْفِ بِشَكْلٍ صَحِيحٍ:</p>
+                </div>
+
+                <div class="flex flex-col items-center justify-center">
+                    <div class="relative mb-4">
+                        <canvas id="tracingCanvas" width="460" height="260"></canvas>
+                        <!-- Instructions badge over canvas -->
+                        <div class="absolute top-3 left-3 bg-teal-50 border border-teal-300 text-teal-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                            ✏️ اكْتُبْ فَوْقَ المَسَاْرِ
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button onclick="resetTracingCanvas()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-5 py-2.5 rounded-xl transition text-sm">
+                            🔄 إِعَاْدَةُ الرَّسْمِ
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= STAGE 6: CONNECTED SENTENCE ================= -->
+            <section id="screen-stage6" class="hidden bg-white rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-indigo-300">
+                <div class="text-center mb-6">
+                    <span class="bg-indigo-100 text-indigo-800 px-4 py-1 rounded-full text-xs font-bold">المَرْحَلَةُ السَّادِسَةُ وَالأَخِيرَةُ</span>
+                    <h3 class="text-2xl sm:text-3xl font-black text-slate-800 mt-2">اسْتِخْرَاْجُ حَرْفِ الْبَاْءِ مِنَ الْجُمْلَةِ 🔍</h3>
+                    <p class="text-slate-600 text-sm mt-1">اِقْرَأِ الْجُمْلَةَ ثُمَّ اِضْغَطْ عَلَى كُلِّ حَرْفِ بَاْءٍ يُوجَدُ فِيهَا:</p>
+                </div>
+
+                <!-- Sentence Display Box -->
+                <div class="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-4 border-amber-300 rounded-3xl p-8 text-center my-6 shadow-inner">
+                    <div class="connected-sentence font-black text-slate-800 space-x-2 space-x-reverse">
+                        <!-- Word 1: باب -->
+                        <span class="inline-block px-2">
+                            <span id="baa-1" onclick="clickBaaLetter(1)" class="baa-highlight">بَـ</span><span>ا</span><span id="baa-2" onclick="clickBaaLetter(2)" class="baa-highlight">بْ</span>
+                        </span>
+                        <!-- Word 2: داري -->
+                        <span class="inline-block px-2 text-slate-700">
+                            دَاْرِي
+                        </span>
+                        <!-- Word 3: بير -->
+                        <span class="inline-block px-2">
+                            <span id="baa-3" onclick="clickBaaLetter(3)" class="baa-highlight">بِـ</span><span>يرْ</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Counter -->
+                <div class="text-center">
+                    <span class="text-slate-700 font-bold text-base">عَدَدُ حُرُوفِ الْبَاءِ الْمَكْتُشَفَةِ: </span>
+                    <span id="baaSentenceCount" class="bg-emerald-600 text-white font-black px-4 py-1 rounded-full text-lg">0 / 3</span>
+                </div>
+            </section>
+
+            <!-- ================= CERTIFICATE SCREEN ================= -->
+            <section id="screen-certificate" class="hidden bg-white rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+                <!-- Certificate Wrapper -->
+                <div class="certificate-border rounded-2xl p-6 sm:p-10 text-center relative">
+                    <!-- Ribbon Badge -->
+                    <div class="absolute -top-6 right-8 bg-amber-500 text-white font-black text-xs px-4 py-2 rounded-b-xl shadow-md border-b-2 border-amber-700">
+                        🏆 شَهَادَةُ تَفَوُّقٍ
+                    </div>
+
+                    <!-- Header -->
+                    <h3 class="text-sm sm:text-base font-bold text-amber-800 tracking-wide mb-1">مَدْرَسَةُ ذُكُورِ الشَّهِيدَيْنِ بِلَالٍ وَأَشْرَفَ الأَسَاسِيَّةِ</h3>
+                    <p class="text-xs text-slate-600 font-semibold mb-6">مَادَّةُ اللُّغَةِ الْعَرَبِيَّةِ - الصَّفُّ الأَوَّلُ الأَسَاسِيُّ</p>
+
+                    <h2 class="text-3xl sm:text-5xl font-black text-amber-600 mb-4 font-serif">شَهَادَةُ تَقْدِيرٍ وَتَفَوُّقٍ</h2>
+                    <p class="text-slate-700 font-medium text-base mb-2">تَشْهَدُ إِدَارَةُ الْمَدْرَسَةِ وَمُعَلِّمُ المَادَّةِ بِأَنَّ الْبَطَلَ:</p>
+
+                    <!-- Student Name -->
+                    <div id="certStudentName" class="text-3xl sm:text-5xl font-black text-emerald-700 bg-amber-100/60 inline-block px-8 py-3 rounded-2xl border-2 border-amber-300 my-3 shadow-sm">
+                        اسم الطالب
+                    </div>
+
+                    <p class="text-slate-700 font-bold text-base sm:text-lg max-w-xl mx-auto my-4 leading-relaxed">
+                        قَدْ أَتَمَّ بِنَجَاحٍ وَتَفَوُّقٍ بَاهِرٍ جَمِيعَ مَرَاحِلِ لُعْبَةِ <span class="text-amber-600 font-black">حَرْفِ الْبَاءِ (ب)</span> وَأَظْهَرَ مَهَارَةً مُمَيَّزَةً فِي الْقِرَاءَةِ وَالْكِتَابَةِ!
+                    </p>
+
+                    <!-- Stars Rating -->
+                    <div class="flex justify-center text-4xl sm:text-5xl my-4 text-amber-400 gap-2">
+                        ⭐ ⭐ ⭐ ⭐ ⭐
+                    </div>
+
+                    <!-- Signatures & Date -->
+                    <div class="grid grid-cols-2 gap-4 mt-8 pt-6 border-t-2 border-amber-200 text-xs sm:text-sm font-bold text-slate-700">
+                        <div>
+                            <p class="text-amber-800 mb-1">مُعَلِّمُ الصَّفِّ:</p>
+                            <p class="text-base text-slate-800 font-black">المُعَلِّمُ مُحَمَّد عَبْدِ الرَّحْمَن</p>
+                        </div>
+                        <div>
+                            <p class="text-amber-800 mb-1">تَارِيخُ الإِنْجَازِ:</p>
+                            <p id="certDate" class="text-base text-slate-800 font-black">--/--/----</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Print & Restart Buttons -->
+                <div class="mt-8 flex flex-wrap justify-center gap-4 no-print">
+                    <button onclick="window.print()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-lg py-3 px-8 rounded-2xl shadow-lg transition active:scale-95 flex items-center gap-2">
+                        <span>🖨️ طِبَاعَةُ الشَّهَادَةِ</span>
+                    </button>
+                    <button onclick="restartGame()" class="bg-slate-700 hover:bg-slate-800 text-white font-black text-lg py-3 px-8 rounded-2xl shadow-lg transition active:scale-95 flex items-center gap-2">
+                        <span>🔄 إِعَادَةُ اللُّعْبَةِ</span>
+                    </button>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        /* GAME STATE VARIABLES */
+        let studentName = "";
+        let currentStage = 1;
+        let lastSpokenText = "";
+        
+        // Stage 2 state
+        let balloonCapturedCount = 0;
+        let balloonInterval = null;
+
+        // Stage 3 state
+        let selectedSyllables = null;
+        let completedMatches = 0;
+
+        // Stage 4 state
+        let stage4Index = 0;
+        const stage4Data = [
+            { id: 1, prefix: "...", suffix: "ادِي", correct: "بـ", word: "بَادِي", hint: "بَادِي" },
+            { id: 2, prefix: "...", suffix: "ُومْ", correct: "بـ", word: "بُومْ", hint: "بُومْ" },
+            { id: 3, prefix: "...", suffix: "ِيرْ", correct: "بـ", word: "بِيرْ", hint: "بِيرْ" },
+            { id: 4, prefix: "بَا...", suffix: "", correct: "ب", word: "بَابْ", hint: "بَابْ" }
+        ];
+
+        // Stage 5 state (Tracing)
+        let tracingStep = 1; // 1: بـ, 2: ب
+        let tracingCanvas, tracingCtx;
+        let isTracing = false;
+        let tracingCheckpointsPassed = [];
+        let tracingCheckpoints = [];
+
+        // Stage 6 state
+        let foundBaaInSentence = new Set();
+
+        /* TTS SOUND ENGINE */
+        function speakText(text, onEndCallback = null) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel(); // Stop current speech
+            
+            lastSpokenText = text;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ar-SA';
+            utterance.rate = 0.78; // Calm rate for 1st graders
+            utterance.pitch = 1.0;
+
+            // Try picking an Arabic voice
+            const voices = window.speechSynthesis.getVoices();
+            const arVoice = voices.find(v => v.lang.includes('ar'));
+            if (arVoice) utterance.voice = arVoice;
+
+            if (onEndCallback) {
+                utterance.onend = onEndCallback;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function repeatInstructionSound() {
+            if (lastSpokenText) {
+                speakText(lastSpokenText);
+            }
+        }
+
+        function startGame() {
+            const input = document.getElementById("studentNameInput");
+            const nameVal = input.value.trim();
+
+            if (!nameVal) {
+                speakText("مِنْ فَضْلِكَ اُكْتُبِ اسْمَكَ أَوَّلًا يَا بَطَلُ!");
+                input.focus();
+                return;
+            }
+
+            studentName = nameVal;
+            document.getElementById("studentBadgeName").innerText = studentName;
+            document.getElementById("studentBadge").classList.remove("hidden");
+            document.getElementById("progressContainer").classList.remove("hidden");
+
+            // Welcome Audio Greeting
+            const welcomeMsg = `أَهْلًا وَسَهْلًا بِكَ يَا ${studentName} فِي مَدْرَسَةِ ذُكُورِ الشَّهِيدَيْنِ بِلَالٍ وَأَشْرَفَ الْأَسَاسِيَّةِ مَعَ الْمُعَلِّمِ مُحَمَّد عَبْدِ الرَّحْمَن. هَيَّا بِنَا نَلْعَبُ وَنَتَعَلَّمُ حَرْفَ الْبَاءِ!`;
+            
+            speakText(welcomeMsg, () => {
+                goToStage(1);
+            });
+        }
+
+        function goToStage(stageNum) {
+            currentStage = stageNum;
+            
+            // Hide all screens
+            document.querySelectorAll("main section").forEach(sec => sec.classList.add("hidden"));
+            
+            // Update progress bar
+            const percent = (stageNum / 6) * 100;
+            document.getElementById("progressBar").style.width = percent + "%";
+            document.getElementById("stageStepText").innerText = `${stageNum} / 6`;
+
+            const stageTitles = [
+                "الاسْتِكْشَافُ وَالاسْتِمَاعُ",
+                "اصْطِيَادُ الْبَالُونَاْتِ",
+                "التَّوْصِيلُ بَيْنَ الْمَقْطَعِ وَالْكَلِمَةِ",
+                "أَشْكَاْلُ حَرْفِ الْبَاْءِ",
+                "كُرَّاسَةُ الْكِتَاْبَةِ",
+                "اسْتِخْرَاْجُ حَرْفِ الْبَاْءِ"
+            ];
+            document.getElementById("stageTitle").innerText = `المَرْحَلَةُ ${stageTitles[stageNum - 1]}`;
+
+            // Show selected screen
+            const targetScreen = document.getElementById(`screen-stage${stageNum}`);
+            if (targetScreen) targetScreen.classList.remove("hidden");
+
+            // Stage Initializers
+            if (stageNum === 1) {
+                speakText(`المَرْحَلَةُ الأُولَى: اِضْغَطْ عَلَى الْبِطَاقَاتِ يَا ${studentName} لِتَسْتَمِعَ إِلَى حَرْفِ الْبَاءِ وَالْمَقَاطِعِ وَالْكَلِمَاتِ.`);
+            } else if (stageNum === 2) {
+                initStage2();
+            } else if (stageNum === 3) {
+                initStage3();
+            } else if (stageNum === 4) {
+                initStage4();
+            } else if (stageNum === 5) {
+                initStage5();
+            } else if (stageNum === 6) {
+                initStage6();
+            }
+        }
+
+        function playExplorationSound(text, label) {
+            speakText(`${label}: ${text}`);
+        }
+
+        function initStage2() {
+            balloonCapturedCount = 0;
+            document.getElementById("balloonCount").innerText = `0 / 4`;
+            const area = document.getElementById("balloonArea");
+            area.innerHTML = "";
+
+            speakText(`المَرْحَلَةُ الثَّانِيَةُ: اِصْطَدِ الْبَالُونَاْتِ الَّتِي تَحْمِلُ حَرْفَ الْبَاءِ يَا ${studentName}!`);
+
+            if (balloonInterval) clearInterval(balloonInterval);
+            balloonInterval = setInterval(spawnBalloon, 1800);
+            spawnBalloon();
+            spawnBalloon();
+        }
+
+        function spawnBalloon() {
+            if (currentStage !== 2) return;
+            const area = document.getElementById("balloonArea");
+            if (!area) return;
+
+            const isTarget = Math.random() < 0.6;
+            const targetType = Math.random() < 0.5 ? 'بـ' : 'ب';
+            const distractors = ['ت', 'ث', 'د', 'ر'];
+            const letter = isTarget ? targetType : distractors[Math.floor(Math.random() * distractors.length)];
+
+            const colors = ['bg-red-400', 'bg-emerald-400', 'bg-amber-400', 'bg-sky-400', 'bg-purple-400', 'bg-pink-400'];
+            const colorClass = colors[Math.floor(Math.random() * colors.length)];
+
+            const balloon = document.createElement("div");
+            balloon.className = `balloon ${colorClass} w-20 h-24 sm:w-24 sm:h-28 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-lg border-2 border-white/50`;
+            balloon.style.left = `${Math.floor(Math.random() * 75) + 5}%`;
+            balloon.innerText = letter;
+
+            balloon.onclick = () => {
+                if (letter === 'بـ' || letter === 'ب') {
+                    balloon.remove();
+                    balloonCapturedCount++;
+                    document.getElementById("balloonCount").innerText = `${balloonCapturedCount} / 4`;
+
+                    let speechMsg = "";
+                    if (letter === 'بـ') {
+                        speechMsg = `هَذَا بَاءٌ فِي أَوَّلِ الْكَلِمَةِ! أَحْسَنْتَ يَا ${studentName}!`;
+                    } else {
+                        speechMsg = `هَذَا بَاءٌ فِي آخِرِ الْكَلِمَةِ! رَائِعٌ يَا ${studentName}!`;
+                    }
+
+                    speakText(speechMsg);
+
+                    if (balloonCapturedCount >= 4) {
+                        clearInterval(balloonInterval);
+                        setTimeout(() => {
+                            speakText(`مُمْتَازٌ جِدًّا يَا ${studentName}! لَقَدِ اصْطَدْتَ جَمِيعَ الْبَالُونَاْتِ!`, () => {
+                                goToStage(3);
+                            });
+                        }, 1200);
+                    }
+                } else {
+                    speakText(`حَاوِلْ مَرَّةً أُخْرَى يَا ${studentName}، هَذَا حَرْفُ ${letter}`);
+                    balloon.classList.add("scale-90", "opacity-50");
+                }
+            };
+
+            area.appendChild(balloon);
+
+            // Float upwards animation
+            let pos = -100;
+            const speed = 1.2 + Math.random() * 1.0;
+            const anim = setInterval(() => {
+                if (currentStage !== 2 || !balloon.parentNode) {
+                    clearInterval(anim);
+                    return;
+                }
+                pos += speed;
+                balloon.style.bottom = pos + "px";
+                if (pos > 380) {
+                    clearInterval(anim);
+                    if (balloon.parentNode) balloon.remove();
+                }
+            }, 30);
+        }
+
+        function initStage3() {
+            selectedSyllables = null;
+            completedMatches = 0;
+            document.getElementById("matchingSvg").innerHTML = "";
+
+            // Reset match item styles
+            document.querySelectorAll(".match-item").forEach(item => {
+                item.style.opacity = "1";
+                item.style.pointerEvents = "auto";
+                item.classList.remove("ring-4", "ring-amber-400");
+            });
+
+            speakText(`المَرْحَلَةُ الثَّالِثَةُ: اِضْغَطْ عَلَى الْمَقْطَعِ ثُمَّ صِلْهُ بِالْكَلِمَةِ الْمُنَاسِبَةِ يَا ${studentName}.`);
+        }
+
+        function handleMatchClick(type, id) {
+            const sounds = {
+                'syl-ba': 'مَقْطَعُ بَا',
+                'syl-bu': 'مَقْطَعُ بُو',
+                'syl-bi': 'مَقْطَعُ بِي',
+                'word-ba': 'كَلِمَةُ بَابْ',
+                'word-bu': 'كَلِمَةُ بُومْ',
+                'word-bi': 'كَلِمَةُ بِيرْ'
+            };
+
+            // Speak item sound immediately
+            speakText(sounds[`${type}-${id}`]);
+
+            if (type === 'syl') {
+                document.querySelectorAll("[id^='syl-']").forEach(el => el.classList.remove("ring-4", "ring-amber-400"));
+                document.getElementById(`syl-${id}`).classList.add("ring-4", "ring-amber-400");
+                selectedSyllables = id;
+            } else if (type === 'word') {
+                if (!selectedSyllables) {
+                    speakText(`اِضْغَطْ عَلَى الْمَقْطَعِ أَوَّلًا يَا ${studentName}!`);
+                    return;
+                }
+
+                if (selectedSyllables === id) {
+                    // Correct Match!
+                    const sylEl = document.getElementById(`syl-${id}`);
+                    const wordEl = document.getElementById(`word-${id}`);
+
+                    drawMatchLine(sylEl, wordEl);
+
+                    sylEl.style.pointerEvents = "none";
+                    wordEl.style.pointerEvents = "none";
+                    sylEl.classList.remove("ring-4", "ring-amber-400");
+                    sylEl.classList.add("bg-emerald-200");
+                    wordEl.classList.add("bg-emerald-200");
+
+                    completedMatches++;
+                    selectedSyllables = null;
+
+                    speakText(`أَحْسَنْتَ يَا ${studentName}! إِجَابَةٌ صَحِيحَةٌ!`);
+
+                    if (completedMatches >= 3) {
+                        setTimeout(() => {
+                            speakText(`رَائِعٌ جِدًّا يَا ${studentName}! أَتْمَمْتَ التَّوْصِيلَ بِنَجَاحٍ!`, () => {
+                                goToStage(4);
+                            });
+                        }, 1500);
+                    }
+                } else {
+                    speakText(`حَاوِلْ مَرَّةً أُخْرَى يَا ${studentName}! هَذَا لَيْسَ الْمَقْطَعَ الْمُنَاسِبَ.`);
+                }
+            }
+        }
+
+        function drawMatchLine(el1, el2) {
+            const svg = document.getElementById("matchingSvg");
+            const rect1 = el1.getBoundingClientRect();
+            const rect2 = el2.getBoundingClientRect();
+            const svgRect = svg.getBoundingClientRect();
+
+            const x1 = rect1.left + rect1.width / 2 - svgRect.left;
+            const y1 = rect1.top + rect1.height / 2 - svgRect.top;
+            const x2 = rect2.left + rect2.width / 2 - svgRect.left;
+            const y2 = rect2.top + rect2.height / 2 - svgRect.top;
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", "#10b981");
+            line.setAttribute("stroke-width", "6");
+            line.setAttribute("stroke-linecap", "round");
+            line.setAttribute("stroke-dasharray", "8, 8");
+
+            svg.appendChild(line);
+        }
+
+        function initStage4() {
+            stage4Index = 0;
+            renderStage4Exercise();
+            speakText(`المَرْحَلَةُ الرَّابِعَةُ: اِخْتَرِ الشَّكْلَ الصَّحِيحَ لِحَرْفِ الْبَاءِ لِتَكْوِينِ الْكَلِمَةِ يَا ${studentName}.`);
+        }
+
+        function renderStage4Exercise() {
+            const container = document.getElementById("stage4Exercises");
+            const item = stage4Data[stage4Index];
+
+            container.innerHTML = `
+                <div class="bg-amber-50 border-3 border-amber-300 rounded-2xl p-6 text-center shadow-md">
+                    <div class="text-xs font-bold text-amber-700 mb-2">السُّؤَالُ ${stage4Index + 1} مِنْ 4</div>
+                    <div class="text-5xl font-black text-slate-800 my-4 tracking-wider flex justify-center items-center gap-1">
+                        <span>${item.prefix}</span>
+                        <span id="targetBlank" class="bg-white border-2 border-dashed border-amber-500 px-4 py-1 rounded-xl text-amber-600 font-bold min-w-[60px] inline-block">؟</span>
+                        <span>${item.suffix}</span>
+                    </div>
+
+                    <p class="text-sm font-bold text-slate-600 mb-6">اِخْتَرِ الشَّكْلَ الصَّحِيحَ:</p>
+
+                    <div class="flex justify-center gap-6">
+                        <button onclick="checkStage4Answer('بـ')" class="bg-white hover:bg-emerald-50 border-3 border-emerald-400 text-emerald-700 font-black text-4xl px-8 py-3 rounded-2xl shadow-md transition transform active:scale-95">
+                            بـ
+                        </button>
+                        <button onclick="checkStage4Answer('ب')" class="bg-white hover:bg-emerald-50 border-3 border-emerald-400 text-emerald-700 font-black text-4xl px-8 py-3 rounded-2xl shadow-md transition transform active:scale-95">
+                            ب
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkStage4Answer(selectedShape) {
+            const item = stage4Data[stage4Index];
+            if (selectedShape === item.correct) {
+                document.getElementById("targetBlank").innerText = selectedShape;
+                document.getElementById("targetBlank").className = "bg-emerald-500 text-white border-2 border-emerald-600 px-4 py-1 rounded-xl font-bold inline-block";
+
+                // Read full word immediately!
+                speakText(`أَحْسَنْتَ يَا ${studentName}! كَلِمَةُ: ${item.word}`, () => {
+                    stage4Index++;
+                    if (stage4Index < stage4Data.length) {
+                        setTimeout(renderStage4Exercise, 800);
+                    } else {
+                        setTimeout(() => {
+                            speakText(`رَائِعٌ يَا ${studentName}! أَكْمَلْتَ جَمِيعَ الْكَلِمَاتِ بِنَجَاحٍ!`, () => {
+                                goToStage(5);
+                            });
+                        }, 1000);
+                    }
+                });
+            } else {
+                speakText(`حَاوِلْ مَرَّةً أُخْرَى يَا ${studentName}! هَذَا لَيْسَ الشَّكْلَ الصَّحِيحَ.`);
+            }
+        }
+
+        function initStage5() {
+            tracingStep = 1;
+            setupTracingStep();
+        }
+
+        function setupTracingStep() {
+            const titleEl = document.getElementById("tracingTitle");
+            tracingCanvas = document.getElementById("tracingCanvas");
+            tracingCtx = tracingCanvas.getContext("2d");
+
+            if (tracingStep === 1) {
+                titleEl.innerText = "كُرَّاسَةُ الْكِتَاْبَةِ: حَرْفُ (بـ) فِي أَوَّلِ الْكَلِمَةِ";
+                speakText(`المَرْحَلَةُ الْخَاْمِسَةُ: اُكْتُبْ حَرْفَ الْبَاءِ فِي أَوَّلِ الْكَلِمَةِ (بـ) بِالتَّمْرِيرِ فَوْقَ النِّقَاْطِ يَا ${studentName}.`);
+                // Checkpoints for بـ
+                tracingCheckpoints = [
+                    { x: 340, y: 80, num: "1" },
+                    { x: 340, y: 170, num: "2" },
+                    { x: 120, y: 170, num: "3" },
+                    { x: 230, y: 220, num: "•" } // Dot
+                ];
+            } else {
+                titleEl.innerText = "كُرَّاسَةُ الْكِتَاْبَةِ: حَرْفُ (ب) فِي آخِرِ الْكَلِمَةِ";
+                speakText(`الآنَ اُكْتُبْ حَرْفَ الْبَاءِ فِي آخِرِ الْكَلِمَةِ (ب) يَا ${studentName}.`);
+                // Checkpoints for ب
+                tracingCheckpoints = [
+                    { x: 360, y: 90, num: "1" },
+                    { x: 360, y: 170, num: "2" },
+                    { x: 100, y: 170, num: "3" },
+                    { x: 100, y: 110, num: "4" },
+                    { x: 230, y: 220, num: "•" } // Dot
+                ];
+            }
+
+            tracingCheckpointsPassed = new Array(tracingCheckpoints.length).fill(false);
+            redrawTracingCanvas();
+
+            // Bind Touch & Mouse Events
+            tracingCanvas.onmousedown = startTracing;
+            tracingCanvas.onmousemove = moveTracing;
+            tracingCanvas.onmouseup = stopTracing;
+
+            tracingCanvas.ontouchstart = (e) => { e.preventDefault(); startTracing(e.touches[0]); };
+            tracingCanvas.ontouchmove = (e) => { e.preventDefault(); moveTracing(e.touches[0]); };
+            tracingCanvas.ontouchend = stopTracing;
+        }
+
+        function redrawTracingCanvas() {
+            // Clear canvas
+            tracingCtx.clearRect(0, 0, tracingCanvas.width, tracingCanvas.height);
+
+            // Draw baseline
+            tracingCtx.beginPath();
+            tracingCtx.moveTo(40, 170);
+            tracingCtx.lineTo(420, 170);
+            tracingCtx.strokeStyle = "#cbd5e1";
+            tracingCtx.lineWidth = 3;
+            tracingCtx.stroke();
+
+            // Draw guide dotted lines connecting checkpoints
+            tracingCtx.beginPath();
+            for (let i = 0; i < tracingCheckpoints.length - 1; i++) {
+                const pt1 = tracingCheckpoints[i];
+                const pt2 = tracingCheckpoints[i + 1];
+                if (pt2.num === "•") continue; // Don't draw line to dot
+                if (i === 0) tracingCtx.moveTo(pt1.x, pt1.y);
+                tracingCtx.lineTo(pt2.x, pt2.y);
+            }
+            tracingCtx.strokeStyle = "#f59e0b";
+            tracingCtx.lineWidth = 8;
+            tracingCtx.setLineDash([8, 8]);
+            tracingCtx.stroke();
+            tracingCtx.setLineDash([]); // Reset dash
+
+            // Draw Checkpoint Numbers / Circles
+            tracingCheckpoints.forEach((cp, idx) => {
+                const isPassed = tracingCheckpointsPassed[idx];
+                tracingCtx.beginPath();
+                tracingCtx.arc(cp.x, cp.y, 16, 0, Math.PI * 2);
+                tracingCtx.fillStyle = isPassed ? "#22c55e" : "#ffffff";
+                tracingCtx.fill();
+                tracingCtx.strokeStyle = isPassed ? "#15803d" : "#f59e0b";
+                tracingCtx.lineWidth = 3;
+                tracingCtx.stroke();
+
+                tracingCtx.fillStyle = isPassed ? "#ffffff" : "#b45309";
+                tracingCtx.font = "bold 14px Cairo";
+                tracingCtx.textAlign = "center";
+                tracingCtx.textBaseline = "middle";
+                tracingCtx.fillText(cp.num, cp.x, cp.y);
+            });
+        }
+
+        function resetTracingCanvas() {
+            tracingCheckpointsPassed.fill(false);
+            redrawTracingCanvas();
+        }
+
+        function getCanvasCoords(evt) {
+            const rect = tracingCanvas.getBoundingClientRect();
+            return {
+                x: (evt.clientX - rect.left) * (tracingCanvas.width / rect.width),
+                y: (evt.clientY - rect.top) * (tracingCanvas.height / rect.height)
+            };
+        }
+
+        function startTracing(e) {
+            isTracing = true;
+            const coords = getCanvasCoords(e);
+            checkCheckpoints(coords);
+        }
+
+        function moveTracing(e) {
+            if (!isTracing) return;
+            const coords = getCanvasCoords(e);
+
+            // Draw user stroke on top permanently
+            tracingCtx.beginPath();
+            tracingCtx.arc(coords.x, coords.y, 12, 0, Math.PI * 2);
+            tracingCtx.fillStyle = "#f97316"; // Bright Orange Neon
+            tracingCtx.fill();
+
+            checkCheckpoints(coords);
+        }
+
+        function stopTracing() {
+            isTracing = false;
+        }
+
+        function checkCheckpoints(coords) {
+            tracingCheckpoints.forEach((cp, idx) => {
+                const dist = Math.hypot(coords.x - cp.x, coords.y - cp.y);
+                if (dist < 32) { // 32px hit radius suited for 1st graders
+                    tracingCheckpointsPassed[idx] = true;
+                }
+            });
+
+            // Check if all checkpoints passed
+            if (tracingCheckpointsPassed.every(v => v === true)) {
+                isTracing = false;
+                if (tracingStep === 1) {
+                    speakText(`أَحْسَنْتَ يَا ${studentName}! كِتَاْبَةٌ رَاْئِعَةٌ لِحَرْفِ (بـ)!`, () => {
+                        tracingStep = 2;
+                        setTimeout(setupTracingStep, 600);
+                    });
+                } else {
+                    speakText(`مُدْهِشٌ يَا ${studentName}! خَطُّكَ جَمِيلٌ جِدًّا!`, () => {
+                        goToStage(6);
+                    });
+                }
+            }
+        }
+
+        function initStage6() {
+            foundBaaInSentence.clear();
+            document.getElementById("baaSentenceCount").innerText = "0 / 3";
+            
+            document.querySelectorAll(".baa-highlight").forEach(el => el.classList.remove("found"));
+
+            // Speak full sentence out loud at start
+            speakText(`المَرْحَلَةُ السَّادِسَةُ: إِقْرَأِ الْجُمْلَةَ يَا ${studentName}: بَابْ دَارِي بِيرْ. ثُمَّ اِضْغَطْ عَلَى كُلِّ حَرْفِ بَاْءٍ فِي الْجُمْلَةِ.`);
+        }
+
+        function clickBaaLetter(index) {
+            const el = document.getElementById(`baa-${index}`);
+            if (!el || foundBaaInSentence.has(index)) return;
+
+            foundBaaInSentence.add(index);
+            el.classList.add("found");
+
+            document.getElementById("baaSentenceCount").innerText = `${foundBaaInSentence.size} / 3`;
+
+            speakText(`حَرْفُ الْبَاءِ! أَحْسَنْتَ يَا ${studentName}!`);
+
+            if (foundBaaInSentence.size >= 3) {
+                setTimeout(() => {
+                    speakText(`مَبْرُوكٌ يَا ${studentName}! لَقَدْ أَتْمَمْتَ كُلَّ المَرَاحِلِ بِنَجَاحٍ وَتَفَوُّقٍ!`, () => {
+                        showCertificate();
+                    });
+                }, 1200);
+            }
+        }
+
+        function showCertificate() {
+            document.querySelectorAll("main section").forEach(sec => sec.classList.add("hidden"));
+            document.getElementById("progressContainer").classList.add("hidden");
+
+            document.getElementById("certStudentName").innerText = studentName;
+            
+            const today = new Date();
+            const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+            document.getElementById("certDate").innerText = dateStr;
+
+            document.getElementById("screen-certificate").classList.remove("hidden");
+
+            // Trigger Fireworks Confetti
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            speakText(`مَبْرُوكٌ لَكَ يَا بَطَلُ ${studentName}! هَذِهِ شَهَادَةُ تَفَوُّقِكَ مِنْ مَدْرَسَةِ ذُكُورِ الشَّهِيدَيْنِ بِلَالٍ وَأَشْرَفَ الأَسَاسِيَّةِ وَمُعَلِّمِكَ مُحَمَّد عَبْدِ الرَّحْمَن!`);
+        }
+
+        function restartGame() {
+            window.location.reload();
+        }
+
+        // Initialize Web Speech Synthesis voice load
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
+    </script>
+</body>
+</html>
